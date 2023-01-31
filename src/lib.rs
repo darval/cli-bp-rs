@@ -76,7 +76,7 @@ impl<'a, 'b> CliBp<'a, 'b> {
             created_dir = true;
         }
         CombinedLogger::init(vec![
-            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed).unwrap(),
+            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
             WriteLogger::new(
                 LevelFilter::Info,
                 Config::default(),
