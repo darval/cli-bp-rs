@@ -44,6 +44,17 @@ impl<'a, 'b> CliBp<'a, 'b> {
                         .long("config_dir")
                         .value_name("DIR")
                         .help("Sets a custom config directory")
+                    )
+                    .arg(clap::Arg::with_name("log_level")
+                        .short("l")
+                        .long("log_level")
+                        .value_name("debug|info|warn|error")
+                        .help("Sets the log level (default info) for the {name}.log in the config directory")
+                    )
+                    .arg(clap::Arg::with_name("debug")
+                        .short("d")
+                        .long("debug")
+                        .help("Runs in debug mode, which allows normal panics with trace")
                     );
         let matches = clap::ArgMatches::new();
         CliBp {
@@ -61,7 +72,7 @@ impl<'a, 'b> CliBp<'a, 'b> {
                             .long("config_dir")
                             .value_name("DIR")
                             .help("Sets a custom config directory")
-                    );
+                        );
         self
     }
 
@@ -75,10 +86,19 @@ impl<'a, 'b> CliBp<'a, 'b> {
             fs::create_dir_all(&config_dir).unwrap();
             created_dir = true;
         }
+        let default_log_level = "info";
+        let log_level = match self.matches.value_of("log_level").unwrap_or(&default_log_level) {
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            "warn" => LevelFilter::Warn,
+            "error" => LevelFilter::Error,
+            _ => LevelFilter::Debug,
+        };
+    
         CombinedLogger::init(vec![
-            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
+//            TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed, ColorChoice::Auto),
             WriteLogger::new(
-                LevelFilter::Info,
+                log_level,
                 Config::default(),
                 OpenOptions::new()
                     .create(true)
@@ -89,9 +109,9 @@ impl<'a, 'b> CliBp<'a, 'b> {
         ])
         .unwrap();
         if let Some(version) = self.matches.value_of_lossy("version") {
-            debug!("Logging started for v{} of {}", version, self.app.get_name());
+            debug!("Logging started for v{} of {}", version, appname);
         } else {
-            debug!("Logging started for {}", self.app.get_name());
+            debug!("Logging started for {}", appname);
         }
         if created_dir {
             info!("Created new config directory: {}", config_dir);
@@ -186,6 +206,12 @@ impl<'a, 'b> CliBp<'a, 'b> {
     /// Sets the [`clap::App::version_message()`]
     pub fn version_message<S: Into<&'a str>>(mut self, s: S) -> Self {
         self.app.p.version_message = Some(s.into());
+        self
+    }
+
+    /// Sets the [`clap::App::arg)`]
+    pub fn arg<A: Into<clap::Arg<'a, 'b>>>(mut self, a: A) -> Self {
+        self.app.p.add_arg(a.into());
         self
     }
 
